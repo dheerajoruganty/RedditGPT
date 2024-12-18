@@ -1,157 +1,181 @@
+# RedditGPT Tutorial: Train a GPT Model on Reddit Comments
 
-# nanoGPT
+Welcome to **RedditGPT**, a hands-on framework for learning how to train and fine-tune GPT models. In this tutorial, you’ll use **Reddit comments** as your dataset to train a language model from scratch or fine-tune an existing one.
 
-![nanoGPT](assets/nanogpt.jpg)
+This guide is tailored for running on **Amazon SageMaker Studio** using a **g5.xlarge instance** with an **NVIDIA A10 GPU**. By the end, you’ll understand the basic steps of data preparation, training, fine-tuning, and generating text samples.
 
-The simplest, fastest repository for training/finetuning medium-sized GPTs. It is a rewrite of [minGPT](https://github.com/karpathy/minGPT) that prioritizes teeth over education. Still under active development, but currently the file `train.py` reproduces GPT-2 (124M) on OpenWebText, running on a single 8XA100 40GB node in about 4 days of training. The code itself is plain and readable: `train.py` is a ~300-line boilerplate training loop and `model.py` a ~300-line GPT model definition, which can optionally load the GPT-2 weights from OpenAI. That's it.
+---
 
-![repro124m](assets/gpt2_124M_loss.png)
+## Learning Objectives
 
-Because the code is so simple, it is very easy to hack to your needs, train new models from scratch, or finetune pretrained checkpoints (e.g. biggest one currently available as a starting point would be the GPT-2 1.3B model from OpenAI).
+1. Understand how to preprocess text data for GPT models.
+2. Learn to train and fine-tune a GPT model using Python.
+3. Gain experience generating text samples from your trained model.
+4. Explore how to tweak configurations for better results.
 
-## install
+---
 
-```
+## Step 1: Setup and Installation
+
+### Prerequisites
+1. Make sure you're using **Amazon SageMaker Studio** with a **g5.xlarge instance**.
+2. Ensure Python 3.11 (or higher) is installed in your environment.
+
+### Install Required Libraries
+Run the following command in your SageMaker notebook terminal:
+
+```bash
+conda create --name RedditGPT_python311 -y python=3.11 ipykernel
+source activate RedditGPT_python311;
 pip install torch numpy transformers datasets tiktoken wandb tqdm
 ```
 
-Dependencies:
+These libraries will provide the tools necessary for training and fine-tuning GPT models.
 
-- [pytorch](https://pytorch.org) <3
-- [numpy](https://numpy.org/install/) <3
--  `transformers` for huggingface transformers <3 (to load GPT-2 checkpoints)
--  `datasets` for huggingface datasets <3 (if you want to download + preprocess OpenWebText)
--  `tiktoken` for OpenAI's fast BPE code <3
--  `wandb` for optional logging <3
--  `tqdm` for progress bars <3
+---
 
-## quick start
+Below is a revised version of the README that includes both the Fortnite and Valorant Reddit comment datasets as options for training your GPT model.
 
-If you are not a deep learning professional and you just want to feel the magic and get your feet wet, the fastest way to get started is to train a character-level GPT on the works of subreddit_comments. First, we download it as a single (1MB) file and turn it from raw text into one large stream of integers:
+---
 
-```sh
-python data/subreddit_comments/prepare.py
+## Step 2: Prepare Your Dataset
+
+You can choose between the Fortnite and Valorant Reddit comment datasets. After selecting a dataset, run its preparation script to preprocess and tokenize the data.
+
+For **Fortnite**:
+```bash
+python data/fortnite_comments/prepare.py
 ```
 
-This creates a `train.bin` and `val.bin` in that data directory. Now it is time to train your GPT. The size of it very much depends on the computational resources of your system:
-
-**I have a GPU**. Great, we can quickly train a baby GPT with the settings provided in the [config/train_subreddit_comments.py](config/train_subreddit_comments.py) config file:
-
-```sh
-python train.py config/train_subreddit_comments.py
+For **Valorant**:
+```bash
+python data/valorant_comments/prepare.py
 ```
 
-If you peek inside it, you'll see that we're training a GPT with a context size of up to 256 characters, 384 feature channels, and it is a 6-layer Transformer with 6 heads in each layer. On one A100 GPU this training run takes about 3 minutes and the best validation loss is 1.4697. Based on the configuration, the model checkpoints are being written into the `--out_dir` directory `out-subreddit-comments`. So once the training finishes we can sample from the best model by pointing the sampling script at this directory:
+This will generate two files:
+- `train.bin` (training data)
+- `val.bin` (validation data)
 
-```sh
-python sample.py --out_dir=out-subreddit-comments
+These binary files store tokenized Reddit comments, ready for model training.
+
+---
+
+## Step 3: Training Your GPT Model
+
+### Choose Your Configuration
+
+Depending on the dataset you selected, use the corresponding training configuration file. Both configurations are optimized for a single A10 GPU and have similar parameters, such as model size and training time.
+
+- For Fortnite:
+  ```bash
+  python train.py config/train_fortnite_comments.py
+  ```
+
+- For Valorant:
+  ```bash
+  python train.py config/train_valorant_comments.py
+  ```
+
+**Key Model Details:**
+- **Model Architecture**: 6 layers, 6 attention heads, 384 features
+- **Context Length**: 256 tokens
+- **Training Time**: ~8-10 minutes for initial results on a single A10 GPU.
+
+During training, you’ll see logs showing progress, including validation loss.
+
+---
+
+## Step 4: Generating Text Samples
+
+Once training is complete, you can generate text samples from the model using the `sample.py` script. Just point `--out_dir` to your chosen model’s output directory:
+
+For Fortnite:
+```bash
+python sample.py --out_dir=out-fortnite-comments
 ```
 
-This generates a few samples, for example:
-
-```
-If you’re talking about not playing duelist instead. It’s what the only ones to communicate as a really fine. I really don't play is strong with a new player bronze and just practice them back your abilities and creating from the day....
-And like the clan coaching that is a good sense, but still movement in the opposit
----------------
-
-I honestly like in this game. I also think it’s a bit so time to play more games and I’m self stuck in the day, I can play comp to manups while going to play with. Reyna both was closing again, but I can't even see a wide from sure.
-Mine is somewhat I play on happening a lot of players who say they wanted to play against the mic as they can’t be higher mmr mmr. I’m not playing the game 💀
-This is so much more of the worst thing, maybe you're losing 1 days
-That's your way to process a ton of impro
----------------
-
-I hope it was relatively poorly for some reason I bought a little silver or something, but they can just literally any different compliments to the game in so this is the new agent in the title comments that are described and if you die on your aim try to get a kill. So there are a lot of times pretty scared by different the right? There are a spectrum Bundle and some times you could see what you as a new agent, when you get continue to it in the game
-Why does you have a month? It's usually the 
----------------
-
-What perk you said a screen straight? I have done playing since the game already forgot the other player and they know when to Deal with the enemy. But they have a teammate that doesn’t have a time to ennemy teammates so I think they can all fight it. But really at the same time was crazy if they want to play with randoms then they get to last act out the horns.
-
-I play at least 2 players and have hate a bad game’s both sides anyways.
-They suspect the 1.4k
-Like Overwatch bro I don't want to wast
----------------
-
-I'm just saying the bullet is that I started out far and I play saving spike nowaday. So I can’t even play it with friends and I’ve been in new ranks.
-So the point of the rest of the course scoreboard, you should call out a lot of players on OT daily. If you want to play a lot of CSGO and you like it will be toxic to make a full experience better than Valorant is in a rad. Then open the others didn't play Val and you can't play game with mine. And you don't have people buy smokes, and then they 
----------------
+For Valorant:
+```bash
+python sample.py --out_dir=out-valorant-comments
 ```
 
-lol  `¯\_(ツ)_/¯`. Not bad for a character-level model after 7-10 minutes of training on a GPU. Better results are quite likely obtainable by instead finetuning a pretrained GPT-2 model on this dataset (see finetuning section later).
+### Example Output
 
-## finetuning
+Sample text from a Valorant-trained model might look like this:
 
-Finetuning is no different than training, we just make sure to initialize from a pretrained model and train with a smaller learning rate. For an example of how to finetune a GPT on new text go to `data/subreddit_comments` and run `prepare.py` to download the tiny subreddit_comments dataset and render it into a `train.bin` and `val.bin`, using the OpenAI BPE tokenizer from GPT-2. Unlike OpenWebText this will run in minutes. Finetuning can take very little time, e.g. on a single GPU just a few minutes. Run an example finetuning like:
-
-```sh
-python train.py config/finetune_subreddit_comments.py
+```text
+Jet is the best duelist on the way to win rate as it happens. Not saying you should be able to always get any effect same character. Maybe the more you will lose the game and sometimes you still get angry?
 ```
 
-This will load the config parameter overrides in `config/finetune_subreddit_comments.py` (I didn't tune them much though). Basically, we initialize from a GPT2 checkpoint with `init_from` and train as normal, except shorter and with a small learning rate. If you're running out of memory try decreasing the model size (they are `{'gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl'}`) or possibly decreasing the `block_size` (context length). The best checkpoint (lowest validation loss) will be in the `out_dir` directory, e.g. in `out-subreddit_comments` by default, per the config file. You can then run the code in `sample.py --out_dir=out-subreddit_comments`:
-
-```
-THEODORE:
-Thou shalt sell me to the highest bidder: if I die,
-I sell thee to the first; if I go mad,
-I sell thee to the second; if I
-lie, I sell thee to the third; if I slay,
-I sell thee to the fourth: so buy or sell,
-I tell thee again, thou shalt not sell my
-possession.
-
-JULIET:
-And if thou steal, thou shalt not sell thyself.
-
-THEODORE:
-I do not steal; I sell the stolen goods.
-
-THEODORE:
-Thou know'st not what thou sell'st; thou, a woman,
-Thou art ever a victim, a thing of no worth:
-Thou hast no right, no right, but to be sold.
-```
-
-Whoa there, GPT, entering some dark place over there. I didn't really tune the hyperparameters in the config too much, feel free to try!
-
-## sampling / inference
-
-Use the script `sample.py` to sample either from pre-trained GPT-2 models released by OpenAI, or from a model you trained yourself. For example, here is a way to sample from the largest available `gpt2-xl` model:
-
-```sh
+To start generation with a specific prompt:
+```bash
 python sample.py \
-    --init_from=gpt2-xl \
-    --start="What is the answer to life, the universe, and everything?" \
-    --num_samples=5 --max_new_tokens=100
+    --start="What do you think about the new update?" \
+    --num_samples=3 --max_new_tokens=100
 ```
 
-If you'd like to sample from a model you trained, use the `--out_dir` to point the code appropriately. You can also prompt the model with some text from a file, e.g. ```python sample.py --start=FILE:prompt.txt```.
+You can also try different prompts and parameters to explore the model’s behavior.
 
-## efficiency notes
+## Step 5: Fine-tuning a Pretrained Model
 
-For simple model benchmarking and profiling, `bench.py` might be useful. It's identical to what happens in the meat of the training loop of `train.py`, but omits much of the other complexities.
+Fine-tuning allows you to build on an existing GPT model, such as GPT-2, by adapting it to your specific dataset.
 
-Note that the code by default uses [PyTorch 2.0](https://pytorch.org/get-started/pytorch-2.0/). At the time of writing (Dec 29, 2022) this makes `torch.compile()` available in the nightly release. The improvement from the one line of code is noticeable, e.g. cutting down iteration time from ~250ms / iter to 135ms / iter. Nice work PyTorch team!
+1. **Prepare Your Data**: Ensure `train.bin` and `val.bin` are ready as described in Step 2.
+2. **Modify Configurations**: Open `config/finetune_reddit_comments.py` and update parameters such as learning rate or model size.
+3. **Start Fine-tuning**:
 
-## todos
+   ```bash
+   python train.py config/finetune_reddit_comments.py
+   ```
 
-- Investigate and add FSDP instead of DDP
-- Eval zero-shot perplexities on standard evals (e.g. LAMBADA? HELM? etc.)
-- Finetune the finetuning script, I think the hyperparams are not great
-- Schedule for linear batch size increase during training
-- Incorporate other embeddings (rotary, alibi)
-- Separate out the optim buffers from model params in checkpoints I think
-- Additional logging around network health (e.g. gradient clip events, magnitudes)
-- Few more investigations around better init etc.
+Fine-tuning typically takes less time than training from scratch. Use the same `sample.py` script to generate outputs from your fine-tuned model.
 
-## troubleshooting
+---
 
-Note that by default this repo uses PyTorch 2.0 (i.e. `torch.compile`). This is fairly new and experimental, and not yet available on all platforms (e.g. Windows). If you're running into related error messages try to disable this by adding `--compile=False` flag. This will slow down the code but at least it will run.
+## Step 6: Tweaking and Experimentation
 
-For some context on this repository, GPT, and language modeling it might be helpful to watch my [Zero To Hero series](https://karpathy.ai/zero-to-hero.html). Specifically, the [GPT video](https://www.youtube.com/watch?v=kCc8FmEb1nY) is popular if you have some prior language modeling context.
+Here are some ways to customize and improve your model:
+- **Model Size**: Adjust layers, heads, or features in the configuration file.
+- **Training Data**: Use a larger or more diverse dataset for better results.
+- **Hyperparameters**: Experiment with learning rates, batch sizes, and context lengths.
+- **Inference**: Use `max_new_tokens` or `temperature` in the sampling script to control the output length and creativity.
 
-For more questions/discussions feel free to stop by **#nanoGPT** on Discord:
+---
 
-[![](https://dcbadge.vercel.app/api/server/3zy8kqD9Cp?compact=true&style=flat)](https://discord.gg/3zy8kqD9Cp)
+## Troubleshooting Tips
 
-## acknowledgements
+- **Memory Errors**: Reduce the `batch_size` or `context_length` in the configuration files.
+- **Slow Training**: Double-check GPU utilization in SageMaker Studio and optimize code if necessary.
+- **Unclear Outputs**: Fine-tune with more data or experiment with hyperparameters.
 
-All nanoGPT experiments are powered by GPUs on [Lambda labs](https://lambdalabs.com), my favorite Cloud GPU provider. Thank you Lambda labs for sponsoring nanoGPT!
+---
+
+## Summary
+
+By completing this tutorial, you’ve:
+1. Preprocessed Reddit comment data for GPT training.
+2. Trained and fine-tuned a GPT model on a single GPU.
+3. Generated and analyzed text samples.
+4. Explored ways to improve and customize your model.
+
+---
+
+## Class Activity
+
+### Task 1: Train Your Own RedditGPT
+1. Use the provided data and configurations to train a small GPT model.
+2. Generate text samples and share them with the class.
+
+### Task 2: Fine-tune RedditGPT
+1. Modify `config/finetune_reddit_comments.py` to use GPT-2 as a base model.
+2. Fine-tune the model on the same dataset and compare outputs with classmates.
+
+---
+
+## Additional Resources
+
+- [Hugging Face Transformers Documentation](https://huggingface.co/docs/transformers/)
+- [PyTorch Official Guide](https://pytorch.org/tutorials/)
+- [OpenAI GPT Model Paper](https://cdn.openai.com/research-covers/language-unsupervised/language_understanding_paper.pdf)
+
+---
