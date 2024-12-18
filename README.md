@@ -30,12 +30,6 @@ source activate RedditGPT_python311;
 pip install torch numpy transformers datasets tiktoken wandb tqdm
 ```
 
-These libraries will provide the tools necessary for training and fine-tuning GPT models.
-
----
-
-Below is a revised version of the README that includes both the Fortnite and Valorant Reddit comment datasets as options for training your GPT model.
-
 ---
 
 ## Step 2: Prepare Your Dataset
